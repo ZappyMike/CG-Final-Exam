@@ -1,0 +1,75 @@
+#version 420
+
+layout(location = 0) in vec2 inUV;
+
+struct DirectionalLight
+{
+	//Light direction (defaults to down, to the left, and a little forward)
+	vec4 _lightDirection;
+
+	//Generic Light controls
+	vec4 _lightCol;
+
+	//Ambience controls
+	vec4 _ambientCol;
+	float _ambientPow;
+	
+	//Power controls
+	float _lightAmbientPow;
+	float _lightSpecularPow;
+	
+	float _shadowBias;
+};
+
+layout (std140, binding = 0) uniform u_Light
+{
+	DirectionalLight light;
+};
+
+layout (binding = 0) uniform sampler2D s_albedoTex;
+layout (binding = 4) uniform sampler2D s_lightAccumTex;
+layout (binding = 5) uniform sampler2D s_skybox;
+
+uniform int u_DiffuseBool;
+uniform int u_AmbientBool;
+uniform int u_Texture;
+
+out vec4 frag_color;
+
+void main() 
+{
+	//Albedo
+	vec4 textureColor = texture(s_albedoTex, inUV);
+	//Lights
+	vec4 lightAccum = texture(s_lightAccumTex, inUV);
+	//Skybox
+	vec4 skybox = texture(s_skybox, inUV);
+
+	// Lecture 5
+	vec3 ambient = light._lightAmbientPow * light._ambientCol.rgb;
+
+	//The result of all the lighting
+	//vec3 result = (ambient + lightAccum.rgb) * textureColor.rgb;
+
+	vec3 result;
+
+	if(u_AmbientBool == 1)
+	{
+		result += ambient;
+	}
+
+	if(u_DiffuseBool == 1)
+	{
+		result += lightAccum.rgb;
+	}
+
+	if(u_Texture == 1)
+	{
+		result *= textureColor.rgb;
+	}
+
+	result = result * skybox.rgb;
+
+	//The light accumulation
+	frag_color = vec4(result, 1.0);
+}
